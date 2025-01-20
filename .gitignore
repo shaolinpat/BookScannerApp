@@ -13,6 +13,6 @@
 .externalNativeBuild
 .cxx
 local.properties
-config.properties
 db_test.java
 data_backups/
+app/src/main/assets/config.properties

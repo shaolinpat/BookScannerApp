@@ -1,17 +1,11 @@
 plugins {
-    alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android")
 }
 
 android {
     namespace = "com.example.bookscannerapp"
     compileSdk = 35
-
-    lint {
-        disable.add("StateFlowValueCalledInComposition")
-        disable.add("CompositionLocalNaming")
-        disable.add("CoroutineCreationDuringComposition")
-    }
 
     defaultConfig {
         applicationId = "com.example.bookscannerapp"
@@ -19,11 +13,6 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
-
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        vectorDrawables {
-            useSupportLibrary = true
-        }
     }
 
     buildTypes {
@@ -35,72 +24,60 @@ android {
             )
         }
     }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+
+    composeOptions {
+        kotlinCompilerExtensionVersion = libs.versions.composeCompiler.get() // Align with libs.versions.toml
     }
-    kotlinOptions {
-        jvmTarget = "1.8"
-    }
+
     buildFeatures {
         compose = true
     }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.1"
+
+    kotlinOptions {
+        jvmTarget = "1.8"
     }
+
+    // Block to handle duplicate resources
+    // New packaging DSL
     packaging {
         resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "META-INF/AL2.0"
+            excludes += "META-INF/LGPL2.1"
         }
     }
 }
 
 dependencies {
-    // Barcode Scanning
-    implementation("com.google.mlkit:barcode-scanning:17.0.3")
+    // Core dependencies
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.google.material)
 
-    // MiaraDB
-    implementation("org.mariadb.jdbc:mariadb-java-client:3.5.1")
+    // Lifecycle and coroutines
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.kotlinx.coroutines)
 
-    // Retrofit
-    implementation("com.squareup.retrofit2:retrofit:2.9.0")
-    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.1")
+    // Retrofit and GSON Converter
+    implementation(libs.retrofit)
+    implementation(libs.gson.converter)
 
+    // ML Kit
+    implementation(libs.barcode.scanning)
+
+    // MariaDB
+    implementation(libs.mariadb.java.client)
 
     // CameraX
-    // CameraX dependencies
-    implementation("androidx.camera:camera-lifecycle:1.2.3")
-    implementation("androidx.camera:camera-camera2:1.2.3")
-    implementation("androidx.camera:camera-view:1.2.3")
-
-    // AndroidX Core and Material
-    implementation("androidx.core:core-ktx:1.10.1")
-    implementation("androidx.appcompat:appcompat:1.6.1")
-    implementation("com.google.android.material:material:1.9.0")
-
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
-    implementation("androidx.recyclerview:recyclerview:1.3.1")
-
+    implementation(libs.androidx.camera.view)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.camera2) // Explicitly add camera-camera2
 
     // Jetpack Compose
     implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.ui)
-    implementation(libs.androidx.ui.graphics)
-    implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-    implementation(libs.androidx.activity.compose)
-    implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.lifecycle.viewmodel.android)
-    implementation(libs.androidx.ui.test.junit4.android)
-    implementation(libs.androidx.ui.test.junit4.android)
 
-    // Test dependencies
+    // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation(libs.androidx.ui.test.junit4)
-    debugImplementation(libs.androidx.ui.tooling)
-    debugImplementation(libs.androidx.ui.test.manifest)
 }

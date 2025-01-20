@@ -23,8 +23,8 @@ fun main() {
                 if (bookDetails != null) {
                     println("Title: ${bookDetails.title ?: "Unknown Title"}")
                     println("Publishers: ${bookDetails.publishers?.joinToString { it.name ?: "Unknown" }}")
-                    println("Publish Date: ${bookDetails.publish_date ?: "Unknown Date"}")
-                    println("Edition: ${bookDetails.edition_name ?: "Unknown Edition"}")
+                    println("Publish Date: ${bookDetails.publishDate ?: "Unknown Date"}")
+                    println("Edition: ${bookDetails.editionName ?: "Unknown Edition"}")
                 } else {
                     println("No details found for ISBN $isbn.")
                 }

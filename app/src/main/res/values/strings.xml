@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">BookScannerApp</string>
+    <string name="enter_isbn">Enter ISBN</string>
+    <string name="submit_isbn">Submit ISBN</string>
+    <string name="start_scanning">Start Scanning</string>
+    <string name="book_details">%1$s - %2$s</string>
 </resources>

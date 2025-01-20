@@ -6,26 +6,30 @@
     android:orientation="vertical"
     android:padding="16dp">
 
+
+
     <!-- Manual ISBN Entry -->
     <EditText
         android:id="@+id/isbnInput"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Enter ISBN"
-        android:inputType="number" />
+        android:hint="@string/enter_isbn"
+        android:inputType="number"
+        android:autofillHints="username"
+        />
 
     <Button
         android:id="@+id/enterIsbnButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Submit ISBN" />
+        android:text="@string/submit_isbn" />
 
     <!-- Camera Scanning -->
     <Button
         android:id="@+id/startScanButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Start Scanning" />
+        android:text="@string/start_scanning" />
 
     <!-- RecyclerView for Scanned Books -->
     <androidx.recyclerview.widget.RecyclerView
@@ -38,5 +42,6 @@
     <androidx.camera.view.PreviewView
         android:id="@+id/previewView"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="0dp"
+        android:layout_weight="1" />
 </LinearLayout>

@@ -4,6 +4,6 @@ data class BookResponse(
     val details: BookDetailsResponse
 )
 
-data class Author(
-    val name: String
-)
+//data class Author(
+//    val name: String
+//)

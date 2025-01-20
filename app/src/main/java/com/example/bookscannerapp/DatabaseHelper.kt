@@ -1,26 +1,16 @@
 package com.example.bookscannerapp
 
 import android.util.Log
-import org.mariadb.jdbc.Statement
 import java.sql.Connection
 import java.sql.DriverManager
-
+import java.sql.Statement
 import java.util.Properties
-import java.io.FileInputStream
 
-private val properties = Properties().apply {
-    load(FileInputStream("config.properties"))
-}
-private val dbUser: String = properties.getProperty("db.username", "default-username")
-private val dbPassword: String = properties.getProperty("db.password", "default-password")
-
-class DatabaseHelper {
-
-    // Use the credentials that worked in your test
+class DatabaseHelper(private val dbUser: String, private val dbPassword: String) {
     private val dbUrl = "jdbc:mariadb://192.168.68.122:3306/BookDatabase"
 
-    // Establish a database connection
     fun connect(): Connection? {
+        Log.d("DatabaseHelper", "Connecting with dbUser: $dbUser and dbPassword: $dbPassword") // Add this log
         return try {
             DriverManager.getConnection(dbUrl, dbUser, dbPassword)
         } catch (e: Exception) {
@@ -29,7 +19,6 @@ class DatabaseHelper {
         }
     }
 
-    // Insert a book into the database
     fun insertBook(
         isbn: String?,
         title: String,
@@ -41,9 +30,9 @@ class DatabaseHelper {
         readDate: String?
     ) {
         val sql = """
-        INSERT INTO Books (ISBN, Title, Edition, Publisher, PublicationDate, LocationID, IsRead, ReadDate)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    """
+            INSERT INTO Books (ISBN, Title, Edition, Publisher, PublicationDate, LocationID, IsRead, ReadDate)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """
         connect()?.use { connection ->
             connection.prepareStatement(sql).use { statement ->
                 statement.setString(1, isbn)
@@ -60,12 +49,12 @@ class DatabaseHelper {
         }
     }
 
-
     fun insertAuthorIfNotExists(name: String): Int {
-        val sqlFind = "SELECT AuthorID FROM Authors WHERE Name = ?"
-        val sqlInsert = "INSERT INTO Authors (Name) VALUES (?)"
+        val sqlFind = "SELECT AuthorID FROM Authors WHERE LastName = ?"
+        val sqlInsert = "INSERT INTO Authors (LastName) VALUES (?)"
 
         connect()?.use { connection ->
+            // Check if the author exists
             connection.prepareStatement(sqlFind).use { statement ->
                 statement.setString(1, name)
                 val resultSet = statement.executeQuery()
@@ -74,47 +63,77 @@ class DatabaseHelper {
                 }
             }
 
-            connection.prepareStatement(sqlInsert).use { statement ->
+            // Insert new author
+            connection.prepareStatement(sqlInsert, Statement.RETURN_GENERATED_KEYS).use { statement ->
                 statement.setString(1, name)
                 statement.executeUpdate()
-                return statement.generatedKeys.getInt(1)
+                val generatedKeys = statement.generatedKeys
+                if (generatedKeys.next()) {
+                    return generatedKeys.getInt(1)
+                }
             }
         }
-        return -1
+        throw Exception("Failed to insert or find author: $name")
     }
 
-    fun associateBookWithAuthor(bookId: Int, authorId: Int) {
-        val sql = "INSERT INTO Books_Authors (BookID, AuthorID) VALUES (?, ?)"
+    fun insertBookAndReturnId(
+        isbn: String?,
+        title: String,
+        edition: String,
+        publisher: String,
+        publicationDate: String?,
+        locationId: Int,
+        isRead: Boolean,
+        readDate: String?
+    ): Int {
+        val sql = """
+        INSERT INTO Books (ISBN, Title, Edition, Publisher, PublicationDate, LocationID, IsRead, ReadDate)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """
         connect()?.use { connection ->
-            connection.prepareStatement(sql).use { statement ->
-                statement.setInt(1, bookId)
-                statement.setInt(2, authorId)
+            connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS).use { statement ->
+                statement.setString(1, isbn)
+                statement.setString(2, title)
+                statement.setString(3, edition)
+                statement.setString(4, publisher)
+                statement.setString(5, publicationDate)
+                statement.setInt(6, locationId)
+                statement.setBoolean(7, isRead)
+                statement.setString(8, readDate)
                 statement.executeUpdate()
+
+                val rs = statement.generatedKeys
+                if (rs.next()) {
+                    return rs.getInt(1)
+                }
             }
         }
+        throw Exception("Failed to insert book and retrieve BookID for ISBN: $isbn")
     }
+
 
 
     fun insertBookWithAuthors(
+        isbn: String?,
         title: String,
-        authors: List<Author>?,
+        edition: String,
         publisher: String,
         publicationDate: String?,
         locationId: Int,
         isRead: Boolean,
         readDate: String?,
-        edition: String,
-        isbn: String?
+        authors: List<Author>?
     ) {
         connect()?.use { connection ->
             connection.autoCommit = false
             try {
-                val sql = """
+                // Insert the book
+                val bookSql = """
                 INSERT INTO Books (ISBN, Title, Edition, Publisher, PublicationDate, LocationID, IsRead, ReadDate)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """
                 val bookId: Int
-                connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS).use { statement ->
+                connection.prepareStatement(bookSql, Statement.RETURN_GENERATED_KEYS).use { statement ->
                     statement.setString(1, isbn)
                     statement.setString(2, title)
                     statement.setString(3, edition)
@@ -124,12 +143,13 @@ class DatabaseHelper {
                     statement.setBoolean(7, isRead)
                     statement.setString(8, readDate)
                     statement.executeUpdate()
+
                     val rs = statement.generatedKeys
                     rs.next()
                     bookId = rs.getInt(1)
                 }
 
-                // Insert authors and associate them with the book
+                // Insert authors and create associations
                 authors?.forEach { author ->
                     val authorId = insertAuthorIfNotExists(author.name ?: "Unknown Author")
                     associateBookWithAuthor(bookId, authorId)
@@ -142,6 +162,20 @@ class DatabaseHelper {
                 Log.e("DatabaseHelper", "Error inserting book and authors: ${e.message}")
             }
         }
+    }
+
+    fun getBookIdByIsbn(isbn: String): Int {
+        val sql = "SELECT BookID FROM Books WHERE ISBN = ?"
+        connect()?.use { connection ->
+            connection.prepareStatement(sql).use { statement ->
+                statement.setString(1, isbn)
+                val resultSet = statement.executeQuery()
+                if (resultSet.next()) {
+                    return resultSet.getInt("BookID")
+                }
+            }
+        }
+        throw Exception("Book with ISBN $isbn not found")
     }
 
 
@@ -172,6 +206,15 @@ class DatabaseHelper {
         return books
     }
 
-
+    fun associateBookWithAuthor(bookId: Int, authorId: Int) {
+        val sql = "INSERT INTO Books_Authors (BookID, AuthorID) VALUES (?, ?)"
+        connect()?.use { connection ->
+            connection.prepareStatement(sql).use { statement ->
+                statement.setInt(1, bookId)
+                statement.setInt(2, authorId)
+                statement.executeUpdate()
+            }
+        }
+    }
 
 }
